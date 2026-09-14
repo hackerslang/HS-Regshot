@@ -48,8 +48,11 @@ size_t nSourceSize;
 LPTSTR GetWholeFileName(LPFILECONTENT lpStartFC, size_t cchExtra)
 {
     LPFILECONTENT lpFC;
+    LPFILECONTENT lpCurrentFC;
+    LPFILECONTENT * lpFCs;
     LPTSTR lpszName;
     LPTSTR lpszTail;
+    LPTSTR lpszOrig;
     size_t cchName;
 
     cchName = 0;
@@ -62,22 +65,47 @@ LPTSTR GetWholeFileName(LPFILECONTENT lpStartFC, size_t cchExtra)
         cchName++;
     }
 
-    lpszName = MYALLOC((cchName + cchExtra) * sizeof(TCHAR));
+    lpszName = MYALLOC0((cchName + cchExtra) * sizeof(TCHAR));
 
-    lpszTail = &lpszName[cchName - 1];
-    lpszTail[0] = (TCHAR)'\0';
+    lpszOrig = &lpszName[0];
+    lpszTail = &lpszName[0];
 
-    for (lpFC = lpStartFC; NULL != lpFC; lpFC = lpFC->lpFatherFC) {
-        if (NULL != lpFC->lpszFileName) {
-            cchName = lpFC->cchFileName;
-            _tcsncpy_s(lpszTail -= cchName, cchName, lpFC->lpszFileName, cchName);
-            if (lpszTail > lpszName) {
-                *--lpszTail = (TCHAR)'\\';
-            }
-        }
+    lpCurrentFC = lpStartFC;
+
+    while (NULL != lpCurrentFC->lpFatherFC) { 
+		lpCurrentFC->lpFatherFC->lpPrevFC = lpCurrentFC;
+		lpCurrentFC = lpCurrentFC->lpFatherFC;
     }
 
-    return lpszName;
+    TCHAR delim;
+
+    for (lpFC = lpCurrentFC; NULL != lpFC; lpFC = lpFC->lpPrevFC) {
+        if (NULL != lpFC->lpszFileName) {
+            cchName = lpFC->cchFileName;
+			_tcsncpy_s(lpszName, cchName + 1, lpFC->lpszFileName, cchName);
+            if (NULL != lpFC->lpPrevFC) {
+                delim = (TCHAR)'\\';
+            }
+            else {
+                delim = (TCHAR)'\0';
+            }
+            lpszName += cchName + 1;
+            lpszTail += cchName;
+            *lpszTail++ = delim;
+        }
+    }
+     
+    //for (lpFC = lpStartFC; NULL != lpFC; lpFC = lpFC->lpFatherFC) {
+    //    if (NULL != lpFC->lpszFileName) {
+    //        cchName = lpFC->cchFileName;
+    //        _tcsncpy_s(lpszTail -= cchName, cchName + 1, lpFC->lpszFileName, cchName);
+    //        if (lpszTail > lpszName) {
+    //            *--lpszTail = (TCHAR)'\\';
+    //        }
+    //    }
+    //}
+
+    return lpszOrig;
 }
 
 //--------------------------------------------------
@@ -369,7 +397,7 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
 
             // Copy file name to new buffer for directory search and more
             lpszFindFileName = MYALLOC0((lpFatherFC->cchFileName + 4 + 1) * sizeof(TCHAR));  // +4 for "\*.*" search when directory (later in routine)
-            _tcscpy_s(lpszFindFileName, lpFatherFC->cchFileName + 4 + 1, lpszFullName);
+            _tcscpy_s(lpszFindFileName, (lpFatherFC->cchFileName + 4 + 1), lpszFullName);
             // Special case if root dir of a drive was specified, needs trailing backslash otherwise current dir of that drive is used
             if ((TCHAR)':' == lpszFindFileName[lpFatherFC->cchFileName - 1]) {
                 lpszFindFileName[lpFatherFC->cchFileName] = (TCHAR)'\\';
@@ -403,7 +431,7 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
                 LocalFree(lpszMessage);
 #endif
 
-                ZeroMemory(&FindData, sizeof(FindData));
+                SecureZeroMemory(&FindData, sizeof(FindData));
 
                 hFile = CreateFile(lpszFullName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
                 if (INVALID_HANDLE_VALUE != hFile) {
@@ -460,8 +488,8 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
             }
 
             // Copy file name
-            lpFatherFC->lpszFileName = MYALLOC((lpFatherFC->cchFileName + 1) * sizeof(TCHAR));
-            _tcscpy_s(lpFatherFC->lpszFileName,  strlen(lpFatherFC->lpszFileName), lpszFullName);
+            lpFatherFC->lpszFileName = MYALLOC0((lpFatherFC->cchFileName + 1) * sizeof(TCHAR));
+            _tcscpy_s(lpFatherFC->lpszFileName, lpFatherFC->cchFileName + 1, lpszFullName);
 
             // Copy file data
             lpFatherFC->nWriteDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
@@ -485,10 +513,14 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
 
         // Process all entries of directory
         // a) Create search pattern and start search
-        if (NULL == lpszFindFileName) {
+        if (NULL == lpszFindFileName 
+            || _tcslen(lpszFindFileName) == 0
+            || lpszFindFileName[0] == (TCHAR)'\0'
+            || 0 == _tcscmp(lpszFindFileName, TEXT(""))) {
             lpszFindFileName = lpszFullName;
         }
-        _tcscat_s(lpszFindFileName, strlen(lpszFindFileName), TEXT("\\*.*"));
+
+        _tcscat_s(lpszFindFileName, _tcslen(lpszFindFileName) + 4 + 1, TEXT("\\*.*"));
         hFile = FindFirstFile(lpszFindFileName, &FindData);
         if (lpszFindFileName != lpszFullName) {
             MYFREE(lpszFindFileName);
@@ -559,8 +591,8 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
         }
 
         // Copy file name
-        lpFC->lpszFileName = MYALLOC((lpFC->cchFileName + 1) * sizeof(TCHAR));
-        _tcscpy_s(lpFC->lpszFileName, strlen(lpFC->lpszFileName), FindData.cFileName);
+        lpFC->lpszFileName = MYALLOC0((lpFC->cchFileName + 1) * sizeof(TCHAR));
+        _tcscpy_s(lpFC->lpszFileName, lpFC->cchFileName + 1, FindData.cFileName);
 
         // Copy file data
         lpFC->nWriteDateTimeLow = FindData.ftLastWriteTime.dwLowDateTime;
@@ -852,7 +884,7 @@ VOID LoadFiles(LPREGSHOT lpShot, DWORD ofsFile, LPFILECONTENT lpFatherFC, LPFILE
             ZeroMemory(lpStringBuffer, nStringBufferSize);
             CopyMemory(lpStringBuffer, (lpFileBuffer + sFC.ofsFileName), nSourceSize);
 
-            lpFC->lpszFileName = MYALLOC(sFC.nFileNameLen * sizeof(TCHAR));
+            lpFC->lpszFileName = MYALLOC0(sFC.nFileNameLen * sizeof(TCHAR));
             if (fileextradata.bSameCharSize) {
                 _tcsncpy_s(lpFC->lpszFileName, sFC.nFileNameLen, lpStringBuffer, sFC.nFileNameLen);
             }
@@ -1002,11 +1034,11 @@ BOOL FindDirChain(LPHEADFILE lpHF, LPTSTR lpszDir, size_t nBufferLen)
                 nWholeLen += nLen;
                 if (nWholeLen < nBufferLen) {
                     if (fAddSeparator) {
-                        _tcscat_s(lpszDir, strlen(lpszDir), TEXT(";"));
+                        _tcscat_s(lpszDir, _tcslen(lpszDir), TEXT(";"));
                     }
-                    _tcscat_s(lpszDir, strlen(lpszDir), lpHF->lpFirstFC->lpszFileName);
+                    _tcscat_s(lpszDir, _tcslen(lpszDir), lpHF->lpFirstFC->lpszFileName);
                     if (fAddBackslash) {
-                        _tcscat_s(lpszDir, strlen(lpszDir), TEXT("\\"));
+                        _tcscat_s(lpszDir, _tcslen(lpszDir), TEXT("\\"));
                     }
                 }
                 else {

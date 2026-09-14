@@ -189,6 +189,8 @@ struct _FILECONTENT {
     struct _FILECONTENT FAR* lpFirstSubFC;  // Pointer to file's first sub file
     struct _FILECONTENT FAR* lpBrotherFC;   // Pointer to file's brother
     struct _FILECONTENT FAR* lpFatherFC;    // Pointer to file's father
+	struct _FILECONTENT FAR* lpNextFC;      // Pointer to file's next file in the list of all files
+	struct _FILECONTENT FAR* lpPrevFC;      // Pointer to file's previous file in the list of all files
     DWORD  fFileMatch;                      // Flags used when comparing, until 1.8.2 it was byte
 };
 typedef struct _FILECONTENT FILECONTENT, FAR* LPFILECONTENT;
