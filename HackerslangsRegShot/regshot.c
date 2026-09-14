@@ -2082,7 +2082,7 @@ VOID SaveShot(LPREGSHOT lpShot)
         ZeroMemory(&fileextradata, sizeof(fileextradata));
 
         // Copy SBCS/MBCS signature to header (even in Unicode builds for backwards compatibility)
-        strncpy_s(fileheader.signature, _tcslen(fileheader.signature), szRegshotFileSignature, MAX_SIGNATURE_LENGTH);
+        strncpy_s(fileheader.signature, MAX_SIGNATURE_LENGTH, szRegshotFileSignature, MAX_SIGNATURE_LENGTH);
 
         // Set file positions of hives inside the file
         fileheader.ofsHKLM = 0;   // not known yet, may be empty
@@ -2227,7 +2227,7 @@ VOID SaveShot(LPREGSHOT lpShot)
 #ifdef _WINDOWS
         // overwrite first letter of file name with NULL character to get path only, then create backup for initialization on next call
         * (opfn.lpstrFile + opfn.nFileOffset) = (TCHAR)'\0';  // TODO: check
-        _tcscpy_s(lpszLastSaveDir, _tcslen(lpszLastSaveDir), opfn.lpstrFile);
+        _tcscpy_s(lpszLastSaveDir, MAX_PATH, opfn.lpstrFile);
 #endif
     }
 
@@ -2882,7 +2882,7 @@ VOID SaveShot(LPREGSHOT lpShot)
 
         // overwrite first letter of file name with NULL character to get path only, then create backup for initialization on next call
         *(opfn.lpstrFile + opfn.nFileOffset) = 0x00;
-        _tcscpy_s(lpszLastOpenDir, _tcslen(lpszLastOpenDir), opfn.lpstrFile);
+        _tcscpy_s(lpszLastOpenDir, MAX_PATH, opfn.lpstrFile);
 
         return TRUE;
     }

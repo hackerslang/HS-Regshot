@@ -1034,11 +1034,11 @@ BOOL FindDirChain(LPHEADFILE lpHF, LPTSTR lpszDir, size_t nBufferLen)
                 nWholeLen += nLen;
                 if (nWholeLen < nBufferLen) {
                     if (fAddSeparator) {
-                        _tcscat_s(lpszDir, _tcslen(lpszDir), TEXT(";"));
+                        _tcscat_s(lpszDir, EXTDIRLEN, TEXT(";"));
                     }
-                    _tcscat_s(lpszDir, _tcslen(lpszDir), lpHF->lpFirstFC->lpszFileName);
+                    _tcscat_s(lpszDir, EXTDIRLEN, lpHF->lpFirstFC->lpszFileName);
                     if (fAddBackslash) {
-                        _tcscat_s(lpszDir, _tcslen(lpszDir), TEXT("\\"));
+                        _tcscat_s(lpszDir, EXTDIRLEN, TEXT("\\"));
                     }
                 }
                 else {
