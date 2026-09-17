@@ -497,7 +497,6 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
             lpFatherFC->nFileSizeLow = FindData.nFileSizeLow;
             lpFatherFC->nFileSizeHigh = FindData.nFileSizeHigh;
             lpFatherFC->nFileAttributes = FindData.dwFileAttributes;
-            lpFatherFC->nChkSum = ChecksumFromFile(lpFatherFC->lpszFileName, "sha256");
 
             // Set "lpFirstSubFC" pointer for storing the first child's pointer
             lplpCaller = &lpFatherFC->lpFirstSubFC;
@@ -600,6 +599,16 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
         lpFC->nFileSizeLow = FindData.nFileSizeLow;
         lpFC->nFileSizeHigh = FindData.nFileSizeHigh;
         lpFC->nFileAttributes = FindData.dwFileAttributes;
+        if (ISFILE(FindData.dwFileAttributes)) {
+            LPTSTR lpszFullFileName = GetWholeFileName(lpFC, 0);
+
+            lpFC->nChkSum = ChecksumFromFile(lpszFullFileName, TEXT("sha256"));
+            lpFC->nChkSumUnknown = (0 != _tcscmp(lpFC->nChkSum, TEXT("")) ? TRUE : FALSE);
+        }
+        else {
+            lpFC->nChkSum = TEXT("");
+            lpFC->nChkSumUnknown = TRUE;
+        }
 
         // Update counters display
         nCurrentTime = GetTickCount();

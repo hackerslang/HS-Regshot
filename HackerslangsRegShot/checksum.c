@@ -19,10 +19,15 @@
 
 #include "common.h"
 #include "checksum.h"
+#include <windows.h> 
+#include <tchar.h>
+#include <stdlib.h>
+#include <string.h>
 
 LPTSTR ChecksumFromFile(LPTSTR filename, const LPTSTR alg)
 {
-    LPTSTR fileContents = ReadFileContents(filename);
+    size_t out_len;
+    unsigned char* fileContents = ReadFileContents(filename, &out_len);
     LPTSTR hash;
 
     if (0 != _tcsicmp(alg, "sha256")) {
@@ -35,50 +40,63 @@ LPTSTR ChecksumFromFile(LPTSTR filename, const LPTSTR alg)
     return hash;
 }
 
-LPTSTR ReadFileContents(const LPTSTR filename)
-{
-    LPTSTR buffer = NULL;
-    size_t len;
-    FILE* f = fopen(filename, "rb");
+unsigned char* ReadFileContents(LPCTSTR filename, size_t* out_len) {
+    HANDLE h = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h == INVALID_HANDLE_VALUE) { *out_len = 0; return NULL; }
 
-    if (f)
-    {
-        fseek(f, 0, SEEK_END);
-        len = ftell(f);
+    LARGE_INTEGER sz;
+    if (!GetFileSizeEx(h, &sz) || sz.QuadPart <= 0) { CloseHandle(h); *out_len = 0; return NULL; }
 
-        buffer = MYALLOC((len + 1) * sizeof(char));;
+    size_t len = (size_t)sz.QuadPart;
+    unsigned char* buf = (unsigned char*)MYALLOC0(len); // or malloc(len)
+    if (!buf) { CloseHandle(h); *out_len = 0; return NULL; }
 
-        fseek(f, 0, SEEK_SET);
-        buffer = malloc(len);
-
-        if (buffer)
-        {
-            for (int i = 0; i < len; i++) {
-                fread(buffer + i, 1, 1, f);
-            }
-        }
-
-        fclose(f);
+    DWORD read = 0;
+    if (!ReadFile(h, buf, (DWORD)len, &read, NULL) || (size_t)read != len) {
+        MYFREE(buf); // or free(buf)
+        CloseHandle(h);
+        *out_len = 0;
+        return NULL;
     }
 
-    return buffer;
+    CloseHandle(h);
+    *out_len = len;
+    return buf;
 }
 
 LPTSTR SHA256Checksum(LPTSTR content) {
-    size_t string_length = (size_t)strlen(content);
+    if (NULL == content) { return TEXT(""); }
+
+    size_t string_length = (size_t)_tcslen(content);
 
 	SHA256 ctx;
 
 	uint8_t hash_binary[SHA256_HASH_SIZE];
-    char hash_hex[65];
+    char *hash_hex = NULL;
 
     sha256_init(&ctx);
     sha256_update(&ctx, content, string_length);
     sha256_final(&ctx, hash_binary);
 
-    sha256_to_string(&ctx, hash_hex);
+    /* Allocate heap buffer for hex string (64 chars + null) */
+    hash_hex = (char *)MYALLOC0(65);
+    if (NULL == hash_hex) { return TEXT(""); }
 
-    return hash_hex;
+    /* Use safe conversion that knows the buffer size */
+    sha256_to_string(&ctx, hash_hex, 65);
+
+    size_t strLen = strlen(hash_hex) + 1;
+    LPTSTR str = MYALLOC0(strLen * sizeof(TCHAR));
+
+    int n = 0;
+    mbstowcs_s(&n, str, strLen, hash_hex, strlen(hash_hex));
+    
+    if (str[strLen - 1] != (TCHAR)'\0') {
+        str[strLen - 1] = TEXT("\0");
+    }
+
+    return str;
 }
 
 LPTSTR SHA512Checksum(LPTSTR content) {

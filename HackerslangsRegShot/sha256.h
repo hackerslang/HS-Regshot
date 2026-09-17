@@ -56,7 +56,7 @@ void sha256_final(SHA256* ctx, uint8_t* hash);
 
 void sha256_init(SHA256* ctx);
 
-void sha256_to_string(SHA256* ctx, char* str);
+void sha256_to_string(SHA256* ctx, char* str, size_t str_size);
 
 void sha256_update(SHA256* ctx, const void* data, uint32_t length);
 

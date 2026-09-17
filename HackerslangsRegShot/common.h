@@ -185,7 +185,8 @@ struct _FILECONTENT {
     DWORD  nFileSizeLow;                    // File size [LOW  DWORD]
     DWORD  nFileSizeHigh;                   // File size [HIGH DWORD]
     DWORD  nFileAttributes;                 // File attributes (e.g. directory)
-    DWORD  nChkSum;                         // File checksum (planned for the future, currently not used)
+    LPTSTR  nChkSum;                         // File checksum (planned for the future, currently not used)
+    BOOL nChkSumUnknown;             // Cannot read file
     struct _FILECONTENT FAR* lpFirstSubFC;  // Pointer to file's first sub file
     struct _FILECONTENT FAR* lpBrotherFC;   // Pointer to file's brother
     struct _FILECONTENT FAR* lpFatherFC;    // Pointer to file's father

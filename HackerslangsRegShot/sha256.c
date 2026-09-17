@@ -250,15 +250,44 @@ sha256_init(SHA256* ctx) {
 */
 
 void
-sha256_to_string(SHA256* ctx, char* str) {
+sha256_to_string(SHA256* ctx, char* str, size_t str_size) {
     int i;
+    size_t pos = 0;
+
+    if (str == NULL || str_size == 0) {
+        return;
+    }
+
+    /* Ensure empty string to start */
+    str[0] = '\0';
 
     for (i = 0; i < SHA256_HASH_WORDS; ++i) {
-        str += sprintf_s(str, strlen(str), "%02x%02x%02x%02x",
+        size_t remaining = (str_size > pos) ? (str_size - pos) : 0;
+        if (remaining == 0) break;
+
+        int written = sprintf_s(str + pos, remaining, "%02x%02x%02x%02x",
             ((ctx->hash[i] >> 24) & 0xff),
             ((ctx->hash[i] >> 16) & 0xff),
             ((ctx->hash[i] >> 8) & 0xff),
             (ctx->hash[i] & 0xff));
+
+        if (written < 0) break; /* encoding error or truncated */
+
+        pos += (size_t)written;
+    }
+}
+
+void sha256_digest_to_string(const uint8_t digest[SHA256_HASH_SIZE], char* out, size_t out_size) {
+    if (!out || out_size == 0) return;
+    size_t pos = 0;
+    out[0] = '\0';
+
+    for (size_t i = 0; i < SHA256_HASH_SIZE; ++i) {
+        size_t remaining = (out_size > pos) ? (out_size - pos) : 0;
+        if (remaining < 3) break; // need 2 chars + null or more for following
+        int written = sprintf_s(out + pos, remaining, "%02x", digest[i]);
+        if (written < 0) break;
+        pos += (size_t)written;
     }
 }
 
