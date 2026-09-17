@@ -603,7 +603,7 @@ VOID GetFilesSnap(LPREGSHOT lpShot, LPTSTR lpszFullName, LPFILECONTENT lpFatherF
             LPTSTR lpszFullFileName = GetWholeFileName(lpFC, 0);
 
             lpFC->nChkSum = ChecksumFromFile(lpszFullFileName, TEXT("sha256"));
-            lpFC->nChkSumUnknown = (0 != _tcscmp(lpFC->nChkSum, TEXT("")) ? TRUE : FALSE);
+            lpFC->nChkSumUnknown = (0 != _tcscmp(lpFC->nChkSum, TEXT("")) ? FALSE : TRUE);
         }
         else {
             lpFC->nChkSum = TEXT("");

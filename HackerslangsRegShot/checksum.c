@@ -89,13 +89,15 @@ LPTSTR SHA256Checksum(LPTSTR content) {
     size_t strLen = strlen(hash_hex) + 1;
     LPTSTR str = MYALLOC0(strLen * sizeof(TCHAR));
 
-    int n = 0;
+    size_t n = 0;
     mbstowcs_s(&n, str, strLen, hash_hex, strlen(hash_hex));
     
     if (str[strLen - 1] != (TCHAR)'\0') {
         str[strLen - 1] = TEXT("\0");
     }
 
+	MYFREE(hash_hex);
+    
     return str;
 }
 

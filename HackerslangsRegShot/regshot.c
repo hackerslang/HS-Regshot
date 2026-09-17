@@ -1019,13 +1019,13 @@ BOOL OutputComparisonResult(VOID)
         *(lpszOutputPath + cchString + 1) = (TCHAR)'\0';  // bug found by "itschy" <itschy@lycos.de> 1.61d->1.61e
         cchString++;
     }
-    _tcscpy_s(lpszDestFileName, _tcslen(lpszDestFileName), lpszOutputPath);
+    _tcscpy_s(lpszDestFileName, EXTDIRLEN, lpszOutputPath);
 
     if (ReplaceInvalidFileNameChars(lpszBuffer)) {
-        _tcscat_s(lpszDestFileName, _tcslen(lpszDestFileName), lpszBuffer);
+        _tcscat_s(lpszDestFileName, EXTDIRLEN, lpszBuffer);
     }
     else {
-        _tcscat_s(lpszDestFileName, _tcslen(lpszDestFileName), lpszResultFileBaseName);
+        _tcscat_s(lpszDestFileName, EXTDIRLEN, lpszResultFileBaseName);
     }
 
     cchString = _tcslen(lpszDestFileName);
