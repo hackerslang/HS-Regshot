@@ -225,7 +225,7 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
                     && (lpFC1->nFileSizeLow == lpFC2->nFileSizeLow)
                     && (lpFC1->nFileSizeHigh == lpFC2->nFileSizeHigh)
                     && (lpFC1->nFileAttributes == lpFC2->nFileAttributes)
-                    && _tcsicmp(lpFC1->nChkSum, lpFC2->nChkSum) == 0) {
+                    && (lpFC1->nChkSumUnknown == lpFC2->nChkSumUnknown) || (0 == _tcsicmp(lpFC1->nChkSum, lpFC2->nChkSum))) {
                     // Same file of FC1 found in FC2
                     lpFC2->fFileMatch = ISMATCH;
                 }
