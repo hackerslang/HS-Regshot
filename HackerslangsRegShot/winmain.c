@@ -20,11 +20,16 @@
     along with Regshot.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 #include "common.h"
 #include "resource.h"
+#include "work.h"
 #include "version.h"
 #pragma comment(lib, "ComCtl32.lib")
+
+static HANDLE g_hWorkerThread = NULL;
+static HANDLE g_hWorkerCancelEvent = NULL;
+
+
 /*
     Define window title for main with version, revision, etc. (see version.rc.h for title structure)
 */
@@ -72,7 +77,7 @@ BROWSEINFO BrowseInfo1;  // BrowseINFO struct
 #ifdef USEHEAPALLOC_DANGER
 HANDLE hHeap;  // 1.8.2
 #endif
-
+ 
 
 
 #ifdef _WINDOWS
@@ -195,20 +200,10 @@ BOOL CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             }
             return(TRUE);
 
-        case IDM_SHOTSAVE:  // Shot Popup Menu: "Shot and Save..."
-            UI_SetHourGlassCursor();
-            Shot(lpMenuShot);
-            MessageBeep(0xffffffff);
-            SaveShot(lpMenuShot);
-            UI_RemoveHourGlassCursor();
+        case IDM_SHOTSAVE:
+	        CreateWorkerThread(hWnd, FUNC_SHOTSAVE, (void*)lpMenuShot, g_hWorkerCancelEvent);
+            EnableWindow(GetDlgItem(hDlg, IDC_QUIT), TRUE);
             UI_EnableMainButtons();
-            MessageBeep(0xffffffff);
-            if (!fDontDisplayInfoAfterShot) {
-                DisplayShotInfo(hDlg, lpMenuShot);
-            }
-            if (CheckShotsChronology(hDlg)) {
-                UI_EnableMainButtons();
-            }
             return(TRUE);
 
         case IDM_LOAD:  // Shot Popup Menu: "Load..."
@@ -361,6 +356,38 @@ BOOL CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                 EnableWindow(GetDlgItem(hDlg, IDC_BROWSE1), FALSE);
             }
             return(TRUE);
+
+        case WM_WORKER_FINISHED: {
+            if (g_hWorkerThread) {
+                CloseHandle(g_hWorkerThread);
+                g_hWorkerThread = NULL;
+            }
+
+            if (g_hWorkerCancelEvent) {
+                CloseHandle(g_hWorkerCancelEvent);
+                g_hWorkerCancelEvent = NULL;
+            }
+
+            switch (wParam) {
+			    case FUNC_SHOTSAVE:
+                    WorkerData* data = (WorkerData*)lParam;
+                    MessageBeep(0xffffffff);
+
+                    if (CheckShotsChronology(hDlg)) {
+                        UI_EnableMainButtons();
+                    }
+
+                    MYFREE(data);
+
+				    break;
+			    
+                default:
+				    MessageBox(hDlg, TEXT("Worker operation completed."), TEXT("Info"), MB_OK | MB_ICONINFORMATION);
+				    break;
+            }
+
+            return TRUE;
+        }
 
         case IDC_QUIT:  // Button: Quit
         case IDCANCEL:  // Button: Window Close

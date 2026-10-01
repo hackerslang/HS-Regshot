@@ -224,10 +224,18 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
                     && (lpFC1->nWriteDateTimeHigh == lpFC2->nWriteDateTimeHigh)
                     && (lpFC1->nFileSizeLow == lpFC2->nFileSizeLow)
                     && (lpFC1->nFileSizeHigh == lpFC2->nFileSizeHigh)
-                    && (lpFC1->nFileAttributes == lpFC2->nFileAttributes)
-                    && (lpFC1->nChkSumUnknown == lpFC2->nChkSumUnknown) || (0 == _tcsicmp(lpFC1->nChkSum, lpFC2->nChkSum))) {
-                    // Same file of FC1 found in FC2
-                    lpFC2->fFileMatch = ISMATCH;
+                    && (lpFC1->nFileAttributes == lpFC2->nFileAttributes)) {
+                    if (lpFC1->nChkSumUnknown && !lpFC2->nChkSumUnknown) {
+                        lpFC2->fFileMatch = WASUNKNOWNBEFORE;
+                    } else if (!lpFC1->nChkSumUnknown && lpFC2->nChkSumUnknown) {
+                        lpFC2->fFileMatch = ISUNKNOWNAFTER;
+                    }
+                    else if (!lpFC1->nChkSumUnknown && !lpFC2->nChkSumUnknown
+                        && 0 == _tcsicmp(lpFC1->nChkSum, lpFC2->nChkSum)) {
+                        lpFC2->fFileMatch = ISMATCH;
+                    } else {
+                        lpFC2->fFileMatch = ISMATCH;
+                    }
                 }
                 else {
                     // File data differ, so file is modified
@@ -269,7 +277,7 @@ VOID CompareFiles(LPFILECONTENT lpStartFC1, LPFILECONTENT lpStartFC2)
                 CompareResult.stcChanged.cDirs++;
                 CompareResult.stcDeleted.cDirs++;
                 CreateNewResult(DIRDEL, lpFC1, NULL);
-
+                    
                 // "Compare"/Log sub files if any
                 if (NULL != lpFC1->lpFirstSubFC) {
                     CompareFiles(lpFC1->lpFirstSubFC, NULL);

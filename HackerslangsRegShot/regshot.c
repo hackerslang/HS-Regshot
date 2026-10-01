@@ -1655,7 +1655,7 @@ VOID Shot(LPREGSHOT lpShot)
     lpShot->lpszUserName = MYALLOC0((UNLEN + 1) * sizeof(TCHAR));
     cchString = UNLEN + 1;
     GetUserName(lpShot->lpszUserName, &cchString);   // in TCHARs; in and out including NULL char
-
+    
     // Set current system time
     GetSystemTime(&lpShot->systemtime);
 
@@ -1671,9 +1671,6 @@ VOID Shot(LPREGSHOT lpShot)
     // Update counters display (reg keys/values final)
     nCurrentTime = GetTickCount();
     UI_UpdateCounters(asLangTexts[iszTextKey].lpszText, asLangTexts[iszTextValue].lpszText, lpShot->stCounts.cKeys, lpShot->stCounts.cValues);
-
-
-
 
 #ifdef _CONSOLE
     UI_ShowHideCounters(SW_HIDE);

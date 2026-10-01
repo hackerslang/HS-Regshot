@@ -42,6 +42,9 @@
     <ClInclude Include="common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="work.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="winmain.c">
@@ -75,6 +78,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="setup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="work.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

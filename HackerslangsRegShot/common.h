@@ -104,6 +104,8 @@ extern HANDLE hHeap;
 #define ISDEL           2
 #define ISADD           3
 #define ISMODI          4
+#define WASUNKNOWNBEFORE 5    // Prev file existed but had no checksum
+#define ISUNKNOWNAFTER 6        // Latest file exists but has no checksumno
 
 #define KEYDEL          1
 #define KEYADD          2
