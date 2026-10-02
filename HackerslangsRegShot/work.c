@@ -29,7 +29,7 @@ DWORD WINAPI WorkerThreadProc(LPVOID lpParam) {
     switch (data->hFunc)
     {
     case FUNC_SHOTONLY:
-        //DoShotOnly(data);
+        DoShotOnly(data);
         break;
     case FUNC_SHOTSAVE:
         DoShotSave(data);
@@ -64,6 +64,28 @@ DWORD WINAPI WorkerThreadProc(LPVOID lpParam) {
 //}
 
 // inside DoShotSave - check the cancel event between long steps
+
+DWORD DoShotOnly(WorkerData* data) {
+	if (!data) return 1;
+	LPREGSHOT lpParam = (LPREGSHOT)data->funcArgs;
+	// pre-check
+	if (data->hCancelEvent && WaitForSingleObject(data->hCancelEvent, 0) == WAIT_OBJECT_0)
+		return 1;
+	// perform shot
+	Shot(lpParam);
+	MessageBeep((UINT)-1);
+	// check cancel after expensive call
+	if (data->hCancelEvent && WaitForSingleObject(data->hCancelEvent, 0) == WAIT_OBJECT_0)
+		return 1;
+	if (!fDontDisplayInfoAfterShot) {
+		DisplayShotInfo(data->hWnd, lpMenuShot);
+	}
+	PostMessage(data->hWnd, WM_WORKER_FINISHED, (WPARAM)FUNC_SHOTONLY, (LPARAM)data);
+	return 0;
+}
+
+
+
 DWORD DoShotSave(WorkerData* data) {
     if (!data) return 1;
     LPREGSHOT lpParam = (LPREGSHOT)data->funcArgs;

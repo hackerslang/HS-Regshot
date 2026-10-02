@@ -168,6 +168,34 @@ BOOL CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
         return TRUE;
 
+    case WM_WORKER_FINISHED: {
+        if (g_hWorkerThread) {
+            CloseHandle(g_hWorkerThread);
+            g_hWorkerThread = NULL;
+        }
+
+        if (g_hWorkerCancelEvent) {
+            CloseHandle(g_hWorkerCancelEvent);
+            g_hWorkerCancelEvent = NULL;
+        }
+        WorkerData* data = (WorkerData*)lParam;
+
+        switch (data->hFunc) {
+            case FUNC_SHOTONLY:
+            case FUNC_SHOTSAVE:
+                UI_EnableMainButtons();
+                MessageBeep(0xffffffff);
+                if (CheckShotsChronology(data->hWnd)) {
+                    UI_EnableMainButtons();
+                }
+                MYFREE(data);
+                return(TRUE);
+            default:
+                MessageBox(hDlg, TEXT("Worker operation completed."), TEXT("Info"), MB_OK | MB_ICONINFORMATION);
+                return(TRUE);
+        }
+        return TRUE;
+    }
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
         case IDC_1STSHOT:  // Button: "1st Shot"
@@ -185,19 +213,11 @@ BOOL CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON, rect.left + 10, rect.top + 10, 0, hDlg, NULL);
             DestroyMenu(hMenu);
             return(TRUE);
-
+                                            
         case IDM_SHOTONLY:  // Shot Popup Menu: "Shot"
-            UI_SetHourGlassCursor();
-            Shot(lpMenuShot);
-            UI_RemoveHourGlassCursor();
+			CreateWorkerThread(hWnd, FUNC_SHOTONLY, (void*)lpMenuShot, g_hWorkerCancelEvent);
+            EnableWindow(GetDlgItem(hDlg, IDC_QUIT), TRUE);
             UI_EnableMainButtons();
-            MessageBeep(0xffffffff);
-            if (!fDontDisplayInfoAfterShot) {
-                DisplayShotInfo(hDlg, lpMenuShot);
-            }
-            if (CheckShotsChronology(hDlg)) {
-                UI_EnableMainButtons();
-            }
             return(TRUE);
 
         case IDM_SHOTSAVE:
@@ -356,38 +376,6 @@ BOOL CALLBACK DialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
                 EnableWindow(GetDlgItem(hDlg, IDC_BROWSE1), FALSE);
             }
             return(TRUE);
-
-        case WM_WORKER_FINISHED: {
-            if (g_hWorkerThread) {
-                CloseHandle(g_hWorkerThread);
-                g_hWorkerThread = NULL;
-            }
-
-            if (g_hWorkerCancelEvent) {
-                CloseHandle(g_hWorkerCancelEvent);
-                g_hWorkerCancelEvent = NULL;
-            }
-
-            switch (wParam) {
-			    case FUNC_SHOTSAVE:
-                    WorkerData* data = (WorkerData*)lParam;
-                    MessageBeep(0xffffffff);
-
-                    if (CheckShotsChronology(hDlg)) {
-                        UI_EnableMainButtons();
-                    }
-
-                    MYFREE(data);
-
-				    break;
-			    
-                default:
-				    MessageBox(hDlg, TEXT("Worker operation completed."), TEXT("Info"), MB_OK | MB_ICONINFORMATION);
-				    break;
-            }
-
-            return TRUE;
-        }
 
         case IDC_QUIT:  // Button: Quit
         case IDCANCEL:  // Button: Window Close
